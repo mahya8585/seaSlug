@@ -1,0 +1,238 @@
+openapi: 3.0.1
+info:
+  title: ウミウシ判定サイト
+  description: ウミウシ判定WEBサイト backend API
+  contact:
+    email: maaya@maaya.dev
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+
+tags:
+  - name: pages
+    description: ページ表示関連
+  - name: search
+    description: 判定関連
+  - name: feedback
+    description: feedback関連
+
+externalDocs:
+  description: ウミウシお勉強メモサイト(判定結果のあるもののみ)
+  url: https://scrapbox.io/umiushi/
+
+paths:
+  /image:
+    post:
+      operationId: uploadImage
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description: img/png のみ受付、サイズ制限を設ける(あとで)
+              properties:
+                filename:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      tags:
+        - search
+        - feedback
+      summary: 画像アップロードAPI(内部API)
+      responses:
+        200:
+          description: http ステータスコード 200 ok。バリデーションエラー時も200でレスポンスする
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/uploadImageResponse'
+        400:
+          description: http ステータスコード 400 error 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        500:
+          description: http ステータスコード 500 error サーバサイドエラー(internal server error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /searchResult:
+    post:
+      tags:
+        - search
+      summary: 画像判定結果登録API。DBに判定結果蓄積(内部API)
+      operationId: createSearchResultData
+      requestBody:
+        description: img/png のみ受付、サイズ制限を設ける(あとで)
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description: img/png のみ受付、サイズ制限を設ける(あとで)
+              properties:
+                fileName:
+                    type: string
+                    format: binary
+                  
+      responses:
+        200:
+          description: http ステータスコード 200 ok。バリデーションエラー時も200でレスポンスする
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/searchResponse'
+        400:
+          description: http ステータスコード 400 error 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        500:
+          description: http ステータスコード 500 error サーバサイドエラー(internal server error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /search:
+    post:
+      tags:
+        - search
+      summary: 画像判定API
+      operationId: compareImage
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              description: img/png のみ受付、サイズ制限を設ける(あとで)
+              properties:
+                filename:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: http ステータスコード 200 ok。バリデーションエラー時も200でレスポンスする
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/searchResponse'
+        400:
+          description: http ステータスコード 400 error 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        500:
+          description: http ステータスコード 500 error サーバサイドエラー(internal server error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /feedback:
+    post:
+      tags:
+        - feedback
+      summary: 結果成否送信API
+      operationId: postFeedback
+      requestBody:
+        description: 成否情報
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postFeedbackRequest'
+        required: true
+      responses:
+        200:
+          description: http ステータスコード 200 ok。バリデーションエラー時も200でレスポンスする
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/postFeedbackRequest'
+        400:
+          description: http ステータスコード 400 error 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+        500:
+          description: http ステータスコード 500 error サーバサイドエラー(internal server error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+components:
+  schemas:
+    error:
+      type: object
+      description: OKの場合は値を返却しない
+      properties:
+        message:
+          type: string
+          description: 画面表示用エラーメッセージ
+
+    uploadImageResponse:
+      type: object
+      description: 画像アップロードは直接フロントエンドから呼ばれないため最小限のレスポンスにする
+      properties:
+        id:
+          description: yyyyMMdd-UUID
+          type: string
+        url:
+          description: 画像のアクセスURL
+          type: string
+          format: uri
+
+    computerVisionResult:
+      type: object
+      description: Comuputer visionの判定結果情報
+      properties:
+        name:
+          description: 判定タグ名(ウミウシ名)
+          type: string
+        probability:
+          description: 予想確率
+          type: number
+          format: float
+    
+    searchResponse:
+      type: object
+      description: 画像判定結果情報
+      properties:
+        image:
+          $ref: '#/components/schemas/uploadImageResponse'
+        result:
+          description: cognitive servicesから返却された結果を返却
+          type: array
+          items:
+            $ref: '#/components/schemas/computerVisionResult'
+
+    userFeedback:
+      type: object
+      description: ユーザからのフィードバック情報
+      properties:
+        judgement:
+          description: ユーザ目線の正誤情報。-1=全て間違い 1以上=おすすめ順位内に存在(何番目の回答が正解かを数値で表す)
+          type: integer
+        name:
+          description: 間違っていた場合の正解ウミウシ名
+          type: string
+
+    postFeedbackRequest:
+      type: object
+      description: フィードバック情報 
+      properties:
+        id:
+          description: 画像ID (uploadImage API で返却されるID)
+          type: string
+        userFeedback:
+          $ref: '#/components/schemas/userFeedback'
