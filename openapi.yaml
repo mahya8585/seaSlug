@@ -68,17 +68,12 @@ paths:
       summary: 画像判定結果登録API。DBに判定結果蓄積(内部API)
       operationId: createSearchResultData
       requestBody:
-        description: img/png のみ受付、サイズ制限を設ける(あとで)
+        description: computer visionデータの登録
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              description: img/png のみ受付、サイズ制限を設ける(あとで)
-              properties:
-                fileName:
-                    type: string
-                    format: binary
-                  
+              $ref: '#/components/schemas/searchResponse'
+        required: true
       responses:
         200:
           description: http ステータスコード 200 ok。バリデーションエラー時も200でレスポンスする
@@ -236,3 +231,6 @@ components:
           type: string
         userFeedback:
           $ref: '#/components/schemas/userFeedback'
+
+
+
